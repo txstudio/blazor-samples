@@ -8,6 +8,8 @@ namespace BlazorWebAssemblySignalRApp.Server.Hubs
         public const string ReceiveGroupMessage = "ReceiveGroupMessage";
     }
 
+    //References link: https://ithelp.ithome.com.tw/articles/10203383
+
     public class ChatHub : Hub
     {
         public async Task SendMessage(string user, string message)
