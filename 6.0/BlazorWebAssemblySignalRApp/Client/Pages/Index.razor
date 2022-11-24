@@ -5,6 +5,14 @@
 
 <PageTitle>Index</PageTitle>
 
+<div class="from-group">
+    <label>
+        Group:
+        <input @bind="groupName"/>
+    </label>
+</div>
+<button @onclick="AddToGroup">Add To Group</button>
+
 <div class="form-group">
     <label>
         User:
@@ -17,7 +25,8 @@
         <input @bind="messageInput" size="50" />
     </label>
 </div>
-<button @onclick="Send" disabled="@(!IsConnected)">Send</button>
+<button @onclick="Send" disabled="@(!IsConnected)">Send To All</button>
+<button @onclick="SendMessageToGroup">Send To Group</button>
 
 <hr>
 
@@ -33,6 +42,7 @@
     private List<string> messages = new List<string>();
     private string? userInput;
     private string? messageInput;
+    private string? groupName;
 
     protected override async Task OnInitializedAsync()
     {
@@ -40,9 +50,26 @@
             .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
             .Build();
 
+        //method: SendMessage > ReceiveMessage
         hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
         {
             var encodedMsg = $"{user}: {message}";
+            messages.Add(encodedMsg);
+            StateHasChanged();
+        });
+
+        //method: SendMessageToGroup > ReceiveAddGroupMessage
+        hubConnection.On<string, string, string>("ReceiveGroupMessage", (groupName, user, message) =>
+        {
+            var encodedMsg = $"{groupName} | {user}: {message}";
+            messages.Add(encodedMsg);
+            StateHasChanged();
+        });
+
+        //method: AddGroup > ReceiveGroupMessage
+        hubConnection.On<string>("ReceiveAddGroupMessage", (message) =>
+        {
+            var encodedMsg = $"{message}";
             messages.Add(encodedMsg);
             StateHasChanged();
         });
@@ -51,12 +78,28 @@
     }
 
     private async Task Send()
-	{
-	    if (hubConnection is not null)
-            {
-                await hubConnection.SendAsync("SendMessage", userInput, messageInput);
-            }
-	}
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendMessage", userInput, messageInput);
+        }
+    }
+    
+    private async Task AddToGroup()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("AddGroup", groupName, userInput);
+        }
+    }
+
+    private async Task SendMessageToGroup()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendMessageToGroup", groupName, userInput, messageInput);
+        }
+    }
 
     public bool IsConnected =>
         hubConnection?.State == HubConnectionState.Connected;
